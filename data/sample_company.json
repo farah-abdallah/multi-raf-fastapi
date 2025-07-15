@@ -1,0 +1,52 @@
+{
+  "company": "TechCorp",
+  "departments": [
+    {
+      "name": "Engineering",
+      "employees": 150,
+      "projects": [
+        {
+          "name": "AI Platform",
+          "description": "Development of machine learning platform for enterprise customers",
+          "status": "In Progress",
+          "technologies": ["Python", "TensorFlow", "Kubernetes", "Docker"]
+        },
+        {
+          "name": "Mobile App",
+          "description": "Cross-platform mobile application for customer engagement",
+          "status": "Completed",
+          "technologies": ["React Native", "Node.js", "MongoDB"]
+        }
+      ]
+    },
+    {
+      "name": "Marketing",
+      "employees": 45,
+      "campaigns": [
+        {
+          "name": "Digital Transformation",
+          "budget": 50000,
+          "channels": ["Social Media", "Email", "Content Marketing"],
+          "target_audience": "Enterprise customers"
+        }
+      ]
+    },
+    {
+      "name": "Research",
+      "employees": 75,
+      "focus_areas": [
+        "Quantum Computing",
+        "Natural Language Processing",
+        "Computer Vision",
+        "Robotics"
+      ],
+      "publications": 12
+    }
+  ],
+  "financial_data": {
+    "revenue": 10000000,
+    "expenses": 7500000,
+    "profit_margin": 0.25,
+    "growth_rate": 0.15
+  }
+}

@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-RAG Chatbot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Roboto', 'DM Sans', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 350px;
+            background-color: #23272F;
+            color: white;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar h2, .sidebar h3 {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar h2 i, .sidebar h3 i {
+            color: #888;
+            margin-right: 8px;
+        }
+
+        .sidebar-section {
+            border-bottom: 0.5px solid #444857;
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.8rem;
+        }
+
+        /* Main content styles */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+
+        .main-header {
+            background: #2D3748;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            color: white;
+            text-align: center;
+        }
+
+        .main-header h1 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-header h1 i {
+            color: #888;
+            margin-right: 12px;
+        }
+
+        /* Chat messages styles */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .message-user {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 0.5rem 0;
+            border-left: 4px solid #2196f3;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+        }
+
+        .message-user strong {
+            color: #0d47a1;
+            font-weight: bold;
+        }
+
+        .message-bot {
+            background: #f3e5f5;
+            color: #6a1b9a;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 0.5rem 0;
+            border-left: 4px solid #9c27b0;
+            box-shadow: 0 2px 8px rgba(156, 39, 176, 0.1);
+        }
+
+        .message-bot strong {
+            color: #4a148c;
+            font-weight: bold;
+        }
+
+        .technique-badge {
+            background: #667eea;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .technique-card {
+            background: #f8f9fa;
+            color: #2c3e50;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .technique-card strong {
+            color: #1a202c;
+            font-weight: bold;
+        }
+
+        .technique-card small {
+            color: #4a5568;
+            line-height: 1.4;
+        }
+
+        /* Input area styles */
+        .input-area {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .query-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .query-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .technique-select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            min-width: 180px;
+        }
+
+        .send-button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .send-button:hover {
+            background: #5a6fd8;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Button styles */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        /* Chat session styles */
+        .chat-session-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: #F1F3F5;
+            color: #2C2C2C;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            font-size: 15px;
+            font-family: 'Inter', 'Segoe UI', 'Roboto', 'DM Sans', sans-serif;
+            transition: background 0.2s, color 0.2s;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+
+        .chat-session-btn.selected, .chat-session-btn:active {
+            background: #E0E7FF;
+            color: #4C6EF5;
+            font-weight: 600;
+        }
+
+        .chat-session-btn:hover {
+            background: #EDEDED;
+            color: #4C6EF5;
+        }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        /* Info box styles */
+        .info-box {
+            background-color: #f0f7fb;
+            color: #23272F;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #0096c7;
+            margin: 1rem 0;
+        }
+
+        /* Loading styles */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Checkbox styles for CRAG */
+        .crag-options {
+            background-color: #e8f0fe;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4c6ef5;
+        }
+
+        .crag-options h5 {
+            margin-bottom: 5px;
+            color: #4a4a4a;
+        }
+
+        .crag-options label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1a73e8;
+        }
+
+        /* Feedback form styles */
+        .feedback-form {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .feedback-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .feedback-col {
+            flex: 1;
+        }
+
+        .slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        /* Welcome message */
+        .welcome-message {
+            background-color: #f0f7fb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #0096c7;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        /* Utility classes */
+        .mt-1 { margin-top: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+        .text-muted { color: #6c757d; }
+        .d-flex { display: flex; }
+        .justify-content-between { justify-content: space-between; }
+        .align-items-center { align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Navigation -->
+            <h2><i class="fa-solid fa-compass"></i>Navigation</h2>
+            <div class="form-group">
+                <input type="radio" id="chat" name="page" value="chat" checked>
+                <label for="chat">Chat</label>
+            </div>
+            <div class="form-group">
+                <input type="radio" id="analytics" name="page" value="analytics">
+                <label for="analytics">Analytics Dashboard</label>
+            </div>
+
+            <!-- Document Upload Section -->
+            <div class="sidebar-section">
+                <h3><i class="fa-solid fa-folder-open"></i>Document Upload</h3>
+                <div class="form-group">
+                    <input type="file" id="file-upload" class="form-control" multiple 
+                           accept=".pdf,.txt,.csv,.json,.docx,.xlsx">
+                    <small class="text-muted">Supported formats: PDF, TXT, CSV, JSON, DOCX, XLSX</small>
+                </div>
+                <div id="uploaded-files"></div>
+            </div>
+
+            <!-- RAG Technique Description -->
+            <div class="sidebar-section">
+                <h3><i class="fa-solid fa-cogs"></i>RAG Technique</h3>
+                <div id="technique-description" class="technique-card">
+                    <strong>Adaptive RAG</strong><br>
+                    <small>Dynamically adapts retrieval strategy based on query type (Factual, Analytical, Opinion, Contextual)</small>
+                </div>
+            </div>
+
+            <!-- Session Management -->
+            <div class="sidebar-section">
+                <h3><i class="fa-regular fa-floppy-disk"></i>Session Management</h3>
+                <div class="d-flex" style="gap: 10px;">
+                    <button id="clear-chat" class="btn btn-danger">✕ Clear Chat</button>
+                    <button id="recover-last" class="btn btn-secondary">↻ Recover Last</button>
+                </div>
+            </div>
+
+            <!-- Individual Message Management -->
+            <div id="message-management" class="sidebar-section" style="display: none;">
+                <h3><i class="fa-solid fa-list-check"></i>Individual Message Management</h3>
+                <div class="info-box">
+                    <p><strong><i class="fa-regular fa-lightbulb"></i> Tip:</strong> 
+                    Click the <i class="fa-solid fa-trash-can"></i> button next to any question to delete that specific question and its response, including any ratings you gave.</p>
+                    <p>This is useful for:</p>
+                    <ul>
+                        <li>Removing test questions</li>
+                        <li>Cleaning up incorrect queries</li>
+                        <li>Managing chat history length</li>
+                    </ul>
+                </div>
+                <div id="session-stats"></div>
+            </div>
+
+            <!-- Chat Sessions -->
+            <div class="sidebar-section">
+                <h3><i class="fa-regular fa-comments"></i>Chat Sessions</h3>
+                <div class="form-group">
+                    <input type="text" id="search-chats" class="form-control" 
+                           placeholder="Search chats..." style="margin-bottom: 10px;">
+                </div>
+                <div class="d-flex" style="gap: 10px; margin-bottom: 15px;">
+                    <button id="new-chat" class="btn btn-primary" style="flex: 1;">+ New Chat</button>
+                    <button id="refresh-chats" class="btn btn-secondary">↻</button>
+                </div>
+                <div id="chat-sessions"></div>
+                <div id="current-session-info" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="sidebar-section">
+                <h3><i class="fa-solid fa-chart-bar"></i>Analytics</h3>
+                <button id="clear-analytics" class="btn btn-danger">Clear Analytics</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="main-header">
+                <h1>
+                    <i class="fa-solid fa-robot"></i>
+                    Multi-RAG Chatbot with Evaluation
+                </h1>
+                <p>Compare different RAG techniques with your documents and get comprehensive analytics</p>
+            </div>
+
+            <!-- Chat Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="fa-regular fa-comments"></i>Chat</h2>
+                <div id="session-status" class="text-muted">💾 Session ready</div>
+            </div>
+
+            <!-- Chat Container -->
+            <div id="chat-container" class="chat-container">
+                <div id="welcome-message" class="welcome-message">
+                    👋 Welcome! Upload documents and start asking questions using different RAG techniques.
+                </div>
+                <div id="messages"></div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Processing your request...</p>
+            </div>
+
+            <!-- CRAG Options -->
+            <div id="crag-options" class="crag-options" style="display: none;">
+                <h5>🌐 CRAG Web Search Options</h5>
+                <label>
+                    <input type="checkbox" id="crag-web-search" checked>
+                    Enable web search fallback
+                </label>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    If enabled, CRAG will use web search when your document is insufficient.
+                </small>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="query-container">
+                    <input type="text" id="query-input" class="query-input" 
+                           placeholder="Ask a question about your documents...">
+                    <select id="technique-select" class="technique-select">
+                        <option value="Adaptive RAG">Adaptive RAG</option>
+                        <option value="CRAG">CRAG</option>
+                        <option value="Document Augmentation">Document Augmentation</option>
+                        <option value="Basic RAG">Basic RAG</option>
+                        <option value="Explainable Retrieval">Explainable Retrieval</option>
+                    </select>
+                    <button id="send-button" class="send-button">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSessionId = null;
+        let uploadedFiles = [];
+        let sessions = [];
+        let pendingFeedback = {};
+
+        // Technique descriptions
+        const techniqueDescriptions = {
+            "Adaptive RAG": "Dynamically adapts retrieval strategy based on query type (Factual, Analytical, Opinion, Contextual)",
+            "CRAG": "Corrective RAG that evaluates retrieved documents and falls back to web search if needed",
+            "Document Augmentation": "Enhances documents with generated questions for better retrieval",
+            "Basic RAG": "Standard similarity-based retrieval and response generation",
+            "Explainable Retrieval": "Provides explanations for why each retrieved document chunk is relevant to your query using Gemini AI"
+        };
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            bindEvents();
+            loadSessions();
+        });
+
+        async function initializeApp() {
+            // Create new session
+            const response = await fetch('/api/sessions/new', { method: 'POST' });
+            const data = await response.json();
+            currentSessionId = data.session_id;
+            
+            updateSessionStatus();
+        }
+
+        function bindEvents() {
+            // File upload
+            document.getElementById('file-upload').addEventListener('change', handleFileUpload);
+            
+            // Send message
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+            document.getElementById('query-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Technique selection
+            document.getElementById('technique-select').addEventListener('change', updateTechniqueDescription);
+            
+            // Session management
+            document.getElementById('new-chat').addEventListener('click', createNewSession);
+            document.getElementById('clear-chat').addEventListener('click', clearCurrentSession);
+            document.getElementById('refresh-chats').addEventListener('click', loadSessions);
+            
+            // Search chats
+            document.getElementById('search-chats').addEventListener('input', filterSessions);
+        }
+
+        async function handleFileUpload() {
+            const files = document.getElementById('file-upload').files;
+            if (files.length === 0) return;
+            
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files', file);
+            }
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.uploaded_files) {
+                    uploadedFiles = data.uploaded_files;
+                    displayUploadedFiles();
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Error uploading files');
+            }
+        }
+
+        function displayUploadedFiles() {
+            const container = document.getElementById('uploaded-files');
+            if (uploadedFiles.length > 0) {
+                container.innerHTML = `
+                    <div style="margin-top: 10px; color: #28a745;">
+                        ✅ Uploaded ${uploadedFiles.length} document(s):
+                        ${uploadedFiles.map(file => `<div>📄 ${file.split('/').pop()}</div>`).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+
+        function updateTechniqueDescription() {
+            const selectedTechnique = document.getElementById('technique-select').value;
+            const descriptionCard = document.getElementById('technique-description');
+            
+            descriptionCard.innerHTML = `
+                <strong>${selectedTechnique}</strong><br>
+                <small>${techniqueDescriptions[selectedTechnique]}</small>
+            `;
+            
+            // Show/hide CRAG options
+            const cragOptions = document.getElementById('crag-options');
+            if (selectedTechnique === 'CRAG') {
+                cragOptions.style.display = 'block';
+            } else {
+                cragOptions.style.display = 'none';
+            }
+        }
+
+        async function sendMessage() {
+            const queryInput = document.getElementById('query-input');
+            const query = queryInput.value.trim();
+            
+            if (!query) return;
+            
+            const technique = document.getElementById('technique-select').value;
+            const cragWebSearch = document.getElementById('crag-web-search').checked;
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('send-button').disabled = true;
+            
+            // Add user message to UI
+            addMessageToUI('user', query);
+            queryInput.value = '';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        technique: technique,
+                        crag_web_search_enabled: cragWebSearch,
+                        session_id: currentSessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    addMessageToUI('assistant', `Error: ${data.error}`, 'Error');
+                } else {
+                    addMessageToUI('assistant', data.response, data.technique, data.message_id);
+                    
+                    // Update session status
+                    updateSessionStatus();
+                    updateMessageManagement();
+                }
+                
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessageToUI('assistant', 'Sorry, there was an error processing your request.', 'Error');
+            } finally {
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('send-button').disabled = false;
+            }
+        }
+
+        function addMessageToUI(role, content, technique = null, messageId = null) {
+            const messagesContainer = document.getElementById('messages');
+            const welcomeMessage = document.getElementById('welcome-message');
+            
+            // Hide welcome message when first message is added
+            if (welcomeMessage && role === 'user') {
+                welcomeMessage.style.display = 'none';
+            }
+            
+            const messageDiv = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            if (role === 'user') {
+                messageDiv.className = 'message-user';
+                messageDiv.innerHTML = `
+                    <strong>You:</strong> ${content}
+                    <br><small>${timestamp}</small>
+                `;
+            } else {
+                messageDiv.className = 'message-bot';
+                const techniqueSpan = technique ? `<span class="technique-badge">${technique}</span>` : '';
+                messageDiv.innerHTML = `
+                    <strong>Assistant:</strong> ${techniqueSpan}
+                    <br>${content}
+                    <br><small>${timestamp}</small>
+                `;
+                
+                // Add feedback form if needed
+                if (messageId && technique !== 'Error') {
+                    addFeedbackForm(messageDiv, messageId);
+                }
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addFeedbackForm(messageDiv, messageId) {
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.className = 'feedback-form';
+            feedbackDiv.innerHTML = `
+                <h4>📝 Rate this response</h4>
+                <p>Help us improve by rating this response:</p>
+                <div class="feedback-row">
+                    <div class="feedback-col">
+                        <label>How helpful was this response?</label>
+                        <input type="range" class="slider" min="1" max="5" value="3" id="helpfulness-${messageId}">
+                        <span id="helpfulness-value-${messageId}">3</span>
+                    </div>
+                    <div class="feedback-col">
+                        <label>How accurate was this response?</label>
+                        <input type="range" class="slider" min="1" max="5" value="3" id="accuracy-${messageId}">
+                        <span id="accuracy-value-${messageId}">3</span>
+                    </div>
+                </div>
+                <div class="feedback-row">
+                    <div class="feedback-col">
+                        <label>How clear was this response?</label>
+                        <input type="range" class="slider" min="1" max="5" value="3" id="clarity-${messageId}">
+                        <span id="clarity-value-${messageId}">3</span>
+                    </div>
+                    <div class="feedback-col">
+                        <label>Overall rating</label>
+                        <input type="range" class="slider" min="1" max="5" value="3" id="overall-${messageId}">
+                        <span id="overall-value-${messageId}">3</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Additional comments (optional):</label>
+                    <textarea id="comments-${messageId}" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="d-flex" style="gap: 10px;">
+                    <button class="btn btn-primary" onclick="submitFeedback('${messageId}')">Submit Feedback</button>
+                    <button class="btn btn-secondary" onclick="skipFeedback('${messageId}')">Skip</button>
+                </div>
+            `;
+            
+            messageDiv.appendChild(feedbackDiv);
+            
+            // Add event listeners for sliders
+            ['helpfulness', 'accuracy', 'clarity', 'overall'].forEach(type => {
+                const slider = document.getElementById(`${type}-${messageId}`);
+                const valueSpan = document.getElementById(`${type}-value-${messageId}`);
+                slider.addEventListener('input', () => {
+                    valueSpan.textContent = slider.value;
+                });
+            });
+        }
+
+        async function submitFeedback(messageId) {
+            const helpfulness = document.getElementById(`helpfulness-${messageId}`).value;
+            const accuracy = document.getElementById(`accuracy-${messageId}`).value;
+            const clarity = document.getElementById(`clarity-${messageId}`).value;
+            const overall = document.getElementById(`overall-${messageId}`).value;
+            const comments = document.getElementById(`comments-${messageId}`).value;
+            
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query_id: messageId,
+                        helpfulness: parseInt(helpfulness),
+                        accuracy: parseInt(accuracy),
+                        clarity: parseInt(clarity),
+                        overall_rating: parseInt(overall),
+                        comments: comments
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Remove feedback form
+                    const feedbackForm = document.querySelector(`#helpfulness-${messageId}`).closest('.feedback-form');
+                    feedbackForm.innerHTML = '<p style="color: #28a745;">✅ Thank you for your feedback!</p>';
+                }
+            } catch (error) {
+                console.error('Feedback error:', error);
+                alert('Error submitting feedback');
+            }
+        }
+
+        function skipFeedback(messageId) {
+            const feedbackForm = document.querySelector(`#helpfulness-${messageId}`).closest('.feedback-form');
+            feedbackForm.remove();
+        }
+
+        async function createNewSession() {
+            const response = await fetch('/api/sessions/new', { method: 'POST' });
+            const data = await response.json();
+            currentSessionId = data.session_id;
+            
+            // Clear messages
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('welcome-message').style.display = 'block';
+            
+            updateSessionStatus();
+            updateMessageManagement();
+            loadSessions();
+        }
+
+        function clearCurrentSession() {
+            // Clear messages
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('welcome-message').style.display = 'block';
+            
+            updateSessionStatus();
+            updateMessageManagement();
+        }
+
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                const data = await response.json();
+                sessions = data.sessions;
+                displaySessions();
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        function displaySessions() {
+            const container = document.getElementById('chat-sessions');
+            
+            if (sessions.length === 0) {
+                container.innerHTML = '<div class="info-box">No chat sessions yet. Start a new chat!</div>';
+                return;
+            }
+            
+            container.innerHTML = sessions.map(session => `
+                <button class="chat-session-btn ${session.session_id === currentSessionId ? 'selected' : ''}"
+                        onclick="switchToSession('${session.session_id}')">
+                    ${session.title}
+                </button>
+            `).join('');
+        }
+
+        function filterSessions() {
+            const searchTerm = document.getElementById('search-chats').value.toLowerCase();
+            const filteredSessions = sessions.filter(session => 
+                session.title.toLowerCase().includes(searchTerm) ||
+                (session.first_message && session.first_message.toLowerCase().includes(searchTerm))
+            );
+            
+            const container = document.getElementById('chat-sessions');
+            if (filteredSessions.length === 0 && searchTerm) {
+                container.innerHTML = '<div class="info-box">No chat sessions match your search. Try different keywords or clear the search box.</div>';
+            } else {
+                container.innerHTML = filteredSessions.map(session => `
+                    <button class="chat-session-btn ${session.session_id === currentSessionId ? 'selected' : ''}"
+                            onclick="switchToSession('${session.session_id}')">
+                        ${session.title}
+                    </button>
+                `).join('');
+            }
+        }
+
+        async function switchToSession(sessionId) {
+            currentSessionId = sessionId;
+            
+            // Load messages for this session
+            try {
+                const response = await fetch(`/api/messages/${sessionId}`);
+                const data = await response.json();
+                
+                // Clear current messages
+                document.getElementById('messages').innerHTML = '';
+                
+                // Add messages from this session
+                data.messages.forEach(message => {
+                    addMessageToUI(message.role, message.content, message.technique, message.id);
+                });
+                
+                // Update UI
+                updateSessionStatus();
+                updateMessageManagement();
+                displaySessions(); // Refresh to show selected state
+                
+            } catch (error) {
+                console.error('Error switching session:', error);
+            }
+        }
+
+        function updateSessionStatus() {
+            const messagesCount = document.getElementById('messages').children.length;
+            const statusDiv = document.getElementById('session-status');
+            
+            if (messagesCount > 0) {
+                statusDiv.textContent = `💾 Auto-saved (${messagesCount} msgs)`;
+            } else {
+                statusDiv.textContent = '💾 Session ready';
+            }
+        }
+
+        function updateMessageManagement() {
+            const messagesCount = document.getElementById('messages').children.length;
+            const managementDiv = document.getElementById('message-management');
+            
+            if (messagesCount > 0) {
+                managementDiv.style.display = 'block';
+                
+                // Calculate stats
+                const userMessages = Array.from(document.querySelectorAll('.message-user')).length;
+                const botMessages = Array.from(document.querySelectorAll('.message-bot')).length;
+                
+                document.getElementById('session-stats').innerHTML = `
+                    <strong>Current Session:</strong>
+                    <div>- <i class="fa-regular fa-comments"></i> ${userMessages} questions asked</div>
+                    <div>- <i class="fa-solid fa-robot"></i> ${botMessages} responses given</div>
+                    <div>- <i class="fa-solid fa-chart-bar"></i> ${botMessages} responses available for rating</div>
+                `;
+                
+                // Update current session info
+                document.getElementById('current-session-info').innerHTML = `
+                    <strong>Current Chat:</strong>
+                    <div><i class="fa-regular fa-comments"></i> ${messagesCount} messages</div>
+                    <div><i class="fa-solid fa-key"></i> ${currentSessionId ? currentSessionId.slice(-8) : 'N/A'}</div>
+                `;
+            } else {
+                managementDiv.style.display = 'none';
+                document.getElementById('current-session-info').innerHTML = '';
+            }
+        }
+
+        // Initialize technique description
+        updateTechniqueDescription();
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+Product,Quarter,Sales,Region,Manager,Cost,Profit
+Laptop,Q1,150000,North,Alice,120000,30000
+Laptop,Q2,180000,North,Alice,140000,40000
+Tablet,Q1,95000,South,Bob,70000,25000
+Tablet,Q2,120000,South,Bob,85000,35000
+Phone,Q1,250000,East,Carol,180000,70000
+Phone,Q2,280000,East,Carol,200000,80000
+Desktop,Q1,75000,West,David,55000,20000
+Desktop,Q2,85000,West,David,60000,25000
+Monitor,Q1,45000,North,Alice,30000,15000
+Monitor,Q2,52000,North,Alice,35000,17000

@@ -1,0 +1,94 @@
+/* Custom styles to match the UI in the screenshot */
+
+/* Sidebar dark theme */
+.sidebar {
+    background-color: #23272F !important;
+    color: #ffffff !important;
+}
+
+/* Messages container */
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 120px; /* Space for fixed input */
+    padding-right: 1rem;
+    position: relative;
+    height: calc(100vh - 280px); /* Adjust based on header and input heights */
+    padding-bottom: 1.5rem;
+    scrollbar-width: thin;
+}
+
+/* Fix header position */
+.main-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin-bottom: 1rem;
+}
+
+/* Make delete buttons visible */
+.delete-button {
+    background: #ff4757 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    margin-top: 0.5rem !important;
+}
+
+/* Fix chat input at bottom */
+.chat-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 300px;
+    right: 0;
+    background: white;
+    padding: 1rem 2rem;
+    border-top: 1px solid #ddd;
+    z-index: 100;
+    box-shadow: 0px -2px 10px rgba(0,0,0,0.05);
+}
+
+/* Match technique badge to the screenshot */
+.technique-badge {
+    background: #667eea;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+/* Style chat session buttons */
+.chat-session-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #F1F3F5;
+    color: #2C2C2C;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', 'DM Sans', sans-serif;
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.chat-session-btn.selected, .chat-session-btn:active {
+    background: #E0E7FF;
+    color: #4C6EF5;
+    font-weight: 600;
+}
+
+.chat-session-btn:hover {
+    background: #EDEDED;
+    color: #4C6EF5;
+}

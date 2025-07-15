@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Viewer - {{ document_name }}</title>
+    <style>
+        .document-viewer {
+            max-width: 100%;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .document-header {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .document-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+        
+        .document-path {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .navigation-bar {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        
+        .nav-button:hover {
+            background: #0056b3;
+        }
+        
+        .nav-button.secondary {
+            background: #6c757d;
+        }
+        
+        .nav-button.secondary:hover {
+            background: #545b62;
+        }
+        
+        .legend {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .legend-item {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .legend-high {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        
+        .legend-medium {
+            background-color: #ffeaa7;
+            border: 2px solid #ff9800;
+            color: #bf6000;
+        }
+        
+        .legend-low {
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .document-content {
+            white-space: pre-wrap;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            font-size: 14px;
+            line-height: 1.7;
+            color: #333;
+        }
+        
+        .chunk-highlight {
+            padding: 3px 6px;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline;
+            margin: 0 1px;
+        }
+        
+        .chunk-highlight:hover {
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+            z-index: 10;
+        }
+        
+        .high-relevance {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        .medium-relevance {
+            background-color: #ffeaa7;
+            border: 2px solid #ff9800;
+        }
+        
+        .low-relevance {
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        
+        .chunk-info {
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .chunk-info::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(0,0,0,0.9);
+        }
+        
+        .chunk-highlight:hover .chunk-info {
+            opacity: 1;
+        }
+        
+        .chunk-count {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #495057;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+            margin: 20px 0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        @media (max-width: 768px) {
+            .document-viewer {
+                padding: 10px;
+            }
+            
+            .legend-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-button {
+                display: block;
+                margin: 5px 0;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="document-viewer">
+        <div class="navigation-bar">
+            <button onclick="window.history.back()" class="nav-button">← Back to Chat</button>
+            <a href="/document/{{ document_id }}/download?message_id={{ message_id }}" class="nav-button secondary">📥 Download Document</a>
+            <button onclick="window.print()" class="nav-button secondary">🖨️ Print</button>
+        </div>
+        
+        <div class="document-header">
+            <h1 class="document-title">📄 {{ document_name }}</h1>
+            <div class="document-path">{{ document_path }}</div>
+        </div>
+        
+        {% if highlighted_chunks %}
+        <div class="chunk-count">
+            <strong>{{ highlighted_chunks|length }}</strong> relevant chunks highlighted for this query
+        </div>
+        
+        <div class="legend">
+            <div class="legend-title">🎯 Relevance Score Legend</div>
+            <div class="legend-grid">
+                <div class="legend-item legend-high">High Relevance (≥80%)</div>
+                <div class="legend-item legend-medium">Medium Relevance (60-79%)</div>
+                <div class="legend-item legend-low">Lower Relevance (<60%)</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="document-content">
+            {{ document_content | safe }}
+        </div>
+    </div>
+    
+    <script>
+        // Add click handlers for chunks
+        document.addEventListener('DOMContentLoaded', function() {
+            const chunks = document.querySelectorAll('.chunk-highlight');
+            chunks.forEach((chunk, index) => {
+                chunk.addEventListener('click', function() {
+                    const score = this.getAttribute('data-score');
+                    const chunkId = this.getAttribute('data-chunk-id');
+                    
+                    // Scroll to chunk and highlight it temporarily
+                    this.style.animation = 'pulse 1s ease-in-out';
+                    
+                    // Show detailed info (you can customize this)
+                    alert(`Chunk ${index + 1}\nRelevance Score: ${score}\nClick to copy text`);
+                    
+                    // Copy chunk text to clipboard
+                    navigator.clipboard.writeText(this.textContent).then(function() {
+                        console.log('Chunk text copied to clipboard');
+                    });
+                });
+                
+                // Add tooltip with more info
+                const tooltip = document.createElement('div');
+                tooltip.className = 'chunk-info';
+                tooltip.textContent = `Relevance: ${chunk.getAttribute('data-score')} | Click to copy`;
+                chunk.appendChild(tooltip);
+            });
+        });
+        
+        // Add pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add smooth scrolling for better UX
+        document.documentElement.style.scrollBehavior = 'smooth';
+    </script>
+</body>
+</html>

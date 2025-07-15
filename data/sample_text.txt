@@ -1,0 +1,33 @@
+Sample Research Document
+=======================
+
+Introduction
+------------
+This is a sample text document to demonstrate CRAG's multi-format support.
+The document contains information about artificial intelligence and machine learning.
+
+Key Concepts
+-----------
+Artificial Intelligence (AI) is the simulation of human intelligence in machines.
+Machine Learning (ML) is a subset of AI that enables computers to learn without explicit programming.
+Deep Learning is a subset of ML that uses neural networks with multiple layers.
+
+Applications
+-----------
+AI has applications in:
+- Healthcare: Diagnosis and treatment recommendations
+- Finance: Fraud detection and algorithmic trading  
+- Transportation: Autonomous vehicles and route optimization
+- Education: Personalized learning and intelligent tutoring systems
+
+Future Trends
+------------
+The future of AI includes developments in:
+1. Explainable AI for better transparency
+2. Edge computing for faster processing
+3. Quantum computing integration
+4. Ethical AI frameworks
+
+Conclusion
+----------
+AI continues to evolve rapidly, transforming various industries and creating new opportunities for innovation.
