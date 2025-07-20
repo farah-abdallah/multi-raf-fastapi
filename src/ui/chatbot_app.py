@@ -40,11 +40,10 @@ import mimetypes
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import our RAG systems
-from src.adaptive_rag import AdaptiveRAG
+
 from src.crag import CRAG
 from src.document_augmentation import DocumentProcessor, SentenceTransformerEmbeddings, load_document_content
 from src.utils.helpers import encode_document, replace_t_with_space
-from src.explainable_retrieval import ExplainableRAGMethod
 
 # Import evaluation framework
 from src.evaluation_framework import EvaluationManager, UserFeedback
@@ -417,113 +416,44 @@ def load_rag_system(
     document_paths: List[str] = None,
     crag_web_search_enabled: bool = None
 ):
-    """Load the specified RAG system with error handling and collect UI messages."""
+    """Load only the CRAG RAG system with error handling and collect UI messages."""
     messages = []
     rag_system = None
     try:
-        messages.append({"type": "info", "text": f"Loading {technique}..."})
-        if technique == "Adaptive RAG":
-            if document_paths:
-                rag_system = AdaptiveRAG(file_paths=document_paths)
+        messages.append({"type": "info", "text": f"Loading CRAG..."})
+        if document_paths and len(document_paths) > 0:
+            rag_system = CRAG(document_paths, web_search_enabled=crag_web_search_enabled)
+            messages.append({"type": "success", "text": "CRAG loaded with your documents."})
+        else:
+            sample_file = "data/Understanding_Climate_Change (1).pdf"
+            if os.path.exists(sample_file):
+                rag_system = CRAG([sample_file], web_search_enabled=crag_web_search_enabled)
+                messages.append({"type": "warning", "text": "No documents uploaded. Using sample file."})
             else:
-                rag_system = AdaptiveRAG(texts=["Sample text for testing. This is a basic RAG system."])
-            messages.append({"type": "success", "text": "Adaptive RAG loaded successfully."})
-
-        elif technique == "CRAG":
-            if document_paths and len(document_paths) > 0:
-                rag_system = CRAG(document_paths, web_search_enabled=crag_web_search_enabled)
-                messages.append({"type": "success", "text": "CRAG loaded with your documents."})
-            else:
-                sample_file = "data/Understanding_Climate_Change (1).pdf"
-                if os.path.exists(sample_file):
-                    rag_system = CRAG([sample_file], web_search_enabled=crag_web_search_enabled)
-                    messages.append({"type": "warning", "text": "No documents uploaded. Using sample file."})
-                else:
-                    messages.append({"type": "error", "text": "CRAG requires a document. Please upload a file first."})
-
-        elif technique == "Document Augmentation":
-            if document_paths and len(document_paths) > 0:
-                messages.append({"type": "info", "text": f"Processing {len(document_paths)} document(s) for Document Augmentation..."})
-                combined_content = ""
-                processed_docs = []
-                for doc_path in document_paths:
-                    try:
-                        content = load_document_content(doc_path)
-                        doc_name = os.path.basename(doc_path)
-                        combined_content += f"\n\n=== Document: {doc_name} ===\n{content}"
-                        processed_docs.append(doc_name)
-                        messages.append({"type": "success", "text": f"✅ Processed: {doc_name}"})
-                    except Exception as e:
-                        messages.append({"type": "warning", "text": f"⚠️ Skipped {os.path.basename(doc_path)}: {str(e)}"})
-                if combined_content:
-                    messages.append({"type": "info", "text": f"Combined content from {len(processed_docs)} documents"})
-                    embedding_model = SentenceTransformerEmbeddings()
-                    processor = DocumentProcessor(combined_content, embedding_model, document_paths[0])
-                    rag_system = processor.run()
-                else:
-                    messages.append({"type": "error", "text": "No documents could be processed successfully."})
-            else:
-                messages.append({"type": "error", "text": "Document Augmentation requires a document. Please upload a file first."})
-
-        elif technique == "Basic RAG":
-            if document_paths and len(document_paths) > 0:
-                if len(document_paths) > 1:
-                    messages.append({"type": "info", "text": f"Processing {len(document_paths)} documents with Basic RAG..."})
-                    rag_system = create_multi_document_basic_rag(document_paths)
-                else:
-                    rag_system = encode_document(document_paths[0])
-                messages.append({"type": "success", "text": "Basic RAG loaded successfully."})
-            else:
-                messages.append({"type": "error", "text": "Basic RAG requires a document. Please upload a file first."})
-
-        elif technique == "Explainable Retrieval":
-            if document_paths and len(document_paths) > 0:
-                messages.append({"type": "info", "text": f"Processing {len(document_paths)} document(s) for Explainable Retrieval..."})
-                all_texts = []
-                processed_docs = []
-                for doc_path in document_paths:
-                    try:
-                        content = load_document_content(doc_path)
-                        doc_name = os.path.basename(doc_path)
-                        from langchain_text_splitters import RecursiveCharacterTextSplitter
-                        text_splitter = RecursiveCharacterTextSplitter(
-                            chunk_size=1000,
-                            chunk_overlap=200
-                        )
-                        chunks = text_splitter.split_text(content)
-                        for chunk in chunks:
-                            all_texts.append(f"[Source: {doc_name}] {chunk}")
-                        processed_docs.append(doc_name)
-                        messages.append({"type": "success", "text": f"✅ Processed: {doc_name}"})
-                    except Exception as e:
-                        messages.append({"type": "warning", "text": f"⚠️ Skipped {os.path.basename(doc_path)}: {str(e)}"})
-                if all_texts:
-                    messages.append({"type": "info", "text": f"Created explainable retrieval system with content from {len(processed_docs)} documents"})
-                    rag_system = ExplainableRAGMethod(all_texts)
-                else:
-                    messages.append({"type": "error", "text": "No documents could be processed successfully."})
-            else:
-                messages.append({"type": "error", "text": "Explainable Retrieval requires a document. Please upload a file first."})
-
+                messages.append({"type": "error", "text": "CRAG requires a document. Please upload a file first."})
     except Exception as e:
-        messages.append({"type": "error", "text": f"Error loading {technique}: {str(e)}"})
-
+        messages.append({"type": "error", "text": f"Error loading CRAG: {str(e)}"})
     return rag_system, messages
-
 def get_rag_response(technique: str, query: str, rag_system, session_messages: list):
     """
-    Get response from the specified RAG system and return response, context, source_chunks, and UI messages.
+    Get response from the CRAG RAG system and return response, context, source_chunks, and UI messages.
     """
     messages = []
     try:
         context = ""  # Will store retrieved context for evaluation
         source_chunks = None  # For CRAG responses
 
-        if technique == "Adaptive RAG":
+        # Only CRAG logic
+        try:
+            messages.append({"type": "info", "text": "🔄 Running CRAG analysis..."})
+            messages.append({"type": "info", "text": "**CRAG Process:**"})
+            messages.append({"type": "info", "text": "1. Retrieving documents from your uploaded files..."})
+            messages.append({"type": "info", "text": "2. Evaluating relevance to your query..."})
+
             conversation_context = ""
             if len(session_messages) > 1:
                 conversation_context = build_conversation_context(session_messages)
-                messages.append({"type": "info", "text": "Using conversation history for context-aware response..."})
+                messages.append({"type": "info", "text": "3. Considering conversation history for context-aware response..."})
 
             enhanced_query = query
             if conversation_context:
@@ -535,85 +465,28 @@ Current question: {query}
 
 Please answer the current question considering the conversation history above.
 """
-            try:
-                context = rag_system.get_context_for_query(enhanced_query, silent=True)
-                response = rag_system.answer(enhanced_query, silent=True)
-                
-                # Try to get source chunks for document viewer
+            if hasattr(rag_system, 'run_with_sources'):
+                result_data = rag_system.run_with_sources(enhanced_query)
+                response = result_data['answer']
+                source_chunks = result_data['source_chunks']
+                sources = result_data['sources']
+                messages.append({"type": "success", "text": "✅ CRAG analysis completed"})
+                context = "\n".join([chunk['text'] for chunk in source_chunks])
+                return response, context, source_chunks, messages
+            else:
+                result = rag_system.run(enhanced_query)
+                response = result
+                messages.append({"type": "success", "text": "✅ CRAG analysis completed"})
                 try:
-                    docs = rag_system.get_relevant_documents(enhanced_query)
+                    docs = rag_system.vectorstore.similarity_search(query, k=3)
                     if docs:
-                        source_chunks = []
-                        for i, doc in enumerate(docs[:3]):
-                            chunk = {
-                                'text': doc.page_content,
-                                'source': doc.metadata.get('source', 'Unknown'),
-                                'page': doc.metadata.get('page'),
-                                'paragraph': doc.metadata.get('paragraph', i),
-                                'score': 1.0  # Default score for Adaptive RAG
-                            }
-                            source_chunks.append(chunk)
-                        return response, context, source_chunks, messages
-                except:
-                    pass
-                
-                return response, context, None, messages
-            except Exception as e:
-                response = rag_system.answer(enhanced_query)
-                try:
-                    docs = rag_system.get_relevant_documents(enhanced_query)
-                    if docs:
-                        context = "\n".join([doc.page_content[:500] for doc in docs[:3]])
+                        context = "\n".join([doc.page_content[:500] for doc in docs])
                     else:
-                        context = "No specific document context retrieved"
+                        context = "CRAG used web search or external sources"
                 except:
-                    context = "Context from uploaded documents"
-                return response, context, None, messages
+                    context = str(result)[:1000] if result else "CRAG context not available"
 
-        elif technique == "CRAG":
-            try:
-                messages.append({"type": "info", "text": "🔄 Running CRAG analysis..."})
-                messages.append({"type": "info", "text": "**CRAG Process:**"})
-                messages.append({"type": "info", "text": "1. Retrieving documents from your uploaded files..."})
-                messages.append({"type": "info", "text": "2. Evaluating relevance to your query..."})
-
-                conversation_context = ""
-                if len(session_messages) > 1:
-                    conversation_context = build_conversation_context(session_messages)
-                    messages.append({"type": "info", "text": "3. Considering conversation history for context-aware response..."})
-
-                enhanced_query = query
-                if conversation_context:
-                    enhanced_query = f"""
-Previous conversation:
-{conversation_context}
-
-Current question: {query}
-
-Please answer the current question considering the conversation history above.
-"""
-                if hasattr(rag_system, 'run_with_sources'):
-                    result_data = rag_system.run_with_sources(enhanced_query)
-                    response = result_data['answer']
-                    source_chunks = result_data['source_chunks']
-                    sources = result_data['sources']
-                    messages.append({"type": "success", "text": "✅ CRAG analysis completed"})
-                    context = "\n".join([chunk['text'] for chunk in source_chunks])
-                    return response, context, source_chunks, messages
-                else:
-                    result = rag_system.run(enhanced_query)
-                    response = result
-                    messages.append({"type": "success", "text": "✅ CRAG analysis completed"})
-                    try:
-                        docs = rag_system.vectorstore.similarity_search(query, k=3)
-                        if docs:
-                            context = "\n".join([doc.page_content[:500] for doc in docs])
-                        else:
-                            context = "CRAG used web search or external sources"
-                    except:
-                        context = str(result)[:1000] if result else "CRAG context not available"
-
-                messages.append({"type": "info", "text": """
+            messages.append({"type": "info", "text": """
 **How CRAG worked for this query:**
 - If relevance was HIGH (>0.7): Used your uploaded document
 - If relevance was LOW (<0.3): Performed web search instead  
@@ -621,172 +494,31 @@ Please answer the current question considering the conversation history above.
 
 Check the response to see which source(s) were actually used!
 """})
-                return response, context, None, messages
-            except Exception as crag_error:
-                error_msg = str(crag_error)
-                messages.append({"type": "error", "text": f"❌ CRAG Error: {error_msg}"})
-                if "API" in error_msg or "google" in error_msg.lower():
-                    messages.append({"type": "warning", "text": "⚠️ This appears to be a Google API issue. Check your internet connection and API key."})
-                elif "rate" in error_msg.lower() or "quota" in error_msg.lower():
-                    messages.append({"type": "warning", "text": "⚠️ API rate limit reached. Please wait a moment and try again."})
-                return f"CRAG failed with error: {error_msg}", "", None, messages
-
-        elif technique == "Document Augmentation":
-            conversation_context = ""
-            if len(session_messages) > 1:
-                conversation_context = build_conversation_context(session_messages)
-                messages.append({"type": "info", "text": "Using conversation history for context-aware response..."})
-
-            enhanced_query = query
-            if conversation_context:
-                enhanced_query = f"""
-Previous conversation:
-{conversation_context}
-
-Current question: {query}
-
-Please answer the current question considering the conversation history above.
-"""
-            docs = rag_system.get_relevant_documents(enhanced_query)
-            if docs:
-                from src.document_augmentation import generate_answer
-                context = docs[0].metadata.get('text', docs[0].page_content)
-                response = generate_answer(context, enhanced_query)
-                
-                # Convert docs to source chunks format for document viewer
-                source_chunks = []
-                for i, doc in enumerate(docs[:3]):
-                    chunk = {
-                        'text': doc.page_content,
-                        'source': doc.metadata.get('source', 'Unknown'),
-                        'page': doc.metadata.get('page'),
-                        'paragraph': doc.metadata.get('paragraph', i),
-                        'score': 1.0  # Default score for Document Augmentation
-                    }
-                    source_chunks.append(chunk)
-                
-                return response, context, source_chunks, messages
-            else:
-                return "No relevant documents found.", "", None, messages
-
-        elif technique == "Basic RAG":
-            conversation_context = ""
-            if len(session_messages) > 1:
-                conversation_context = build_conversation_context(session_messages)
-                messages.append({"type": "info", "text": "Using conversation history for context-aware response..."})
-
-            enhanced_query = query
-            if conversation_context:
-                enhanced_query = f"""
-Previous conversation:
-{conversation_context}
-
-Current question: {query}
-
-Please answer the current question considering the conversation history above.
-"""
-            docs = rag_system.similarity_search(enhanced_query, k=3)
-            if docs:
-                context = "\n".join([doc.page_content for doc in docs])
-                response = f"Based on the documents:\n\n{context[:500]}..."
-                
-                # Convert docs to source chunks format for document viewer
-                source_chunks = []
-                for i, doc in enumerate(docs):
-                    chunk = {
-                        'text': doc.page_content,
-                        'source': doc.metadata.get('source', 'Unknown'),
-                        'page': doc.metadata.get('page'),
-                        'paragraph': doc.metadata.get('paragraph', i),
-                        'score': 1.0  # Default score for Basic RAG
-                    }
-                    source_chunks.append(chunk)
-                
-                return response, context, source_chunks, messages
-            else:
-                return "No relevant documents found.", "", None, messages
-
-        elif technique == "Explainable Retrieval":
-            try:
-                messages.append({"type": "info", "text": "🔄 Running Explainable Retrieval..."})
-                messages.append({"type": "info", "text": "**Explainable Retrieval Process:**"})
-                messages.append({"type": "info", "text": "1. Retrieving relevant document chunks..."})
-                messages.append({"type": "info", "text": "2. Generating explanations for each retrieved chunk..."})
-                messages.append({"type": "info", "text": "3. Synthesizing a comprehensive answer with reasoning..."})
-
-                conversation_context = ""
-                if len(session_messages) > 1:
-                    conversation_context = build_conversation_context(session_messages)
-                    messages.append({"type": "info", "text": "4. Considering conversation history for context-aware response..."})
-
-                enhanced_query = query
-                if conversation_context:
-                    enhanced_query = f"""
-Previous conversation:
-{conversation_context}
-
-Current question: {query}
-
-Please answer the current question considering the conversation history above.
-"""
-                detailed_results = rag_system.run(enhanced_query)
-                context = ""
-                source_chunks = []
-                
-                if detailed_results:
-                    context = "\n".join([result['content'] for result in detailed_results])
-                    
-                    # Convert detailed_results to source chunks format for document viewer
-                    for i, result in enumerate(detailed_results):
-                        chunk = {
-                            'text': result['content'],
-                            'source': result.get('source', 'Unknown'),
-                            'page': result.get('page'),
-                            'paragraph': result.get('paragraph', i),
-                            'score': result.get('score', 1.0)
-                        }
-                        source_chunks.append(chunk)
-
-                answer = rag_system.answer(enhanced_query)
-                messages.append({"type": "success", "text": "✅ Explainable Retrieval completed"})
-
-                # Add detailed explanations as info messages
-                if detailed_results:
-                    for i, result in enumerate(detailed_results, 1):
-                        messages.append({"type": "info", "text": f"📄 Retrieved Section {i}:\nContent: {result['content'][:200]}{'...' if len(result['content']) > 200 else ''}\n💡 Explanation: {result['explanation']}"})
-                else:
-                    messages.append({"type": "info", "text": "No detailed explanations available."})
-
-                return answer, context, source_chunks, messages
-
-            except Exception as er_error:
-                error_msg = str(er_error)
-                messages.append({"type": "error", "text": f"❌ Explainable Retrieval Error: {error_msg}"})
-                if "API" in error_msg or "google" in error_msg.lower():
-                    messages.append({"type": "warning", "text": "⚠️ This appears to be a Google API issue. Check your internet connection and API key."})
-                elif "rate" in error_msg.lower() or "quota" in error_msg.lower():
-                    messages.append({"type": "warning", "text": "⚠️ API rate limit reached. Please wait a moment and try again."})
-                return f"Explainable Retrieval failed with error: {error_msg}", "", None, messages
-
-        return "Unknown technique.", "", None, messages
+            return response, context, None, messages
+        except Exception as crag_error:
+            error_msg = str(crag_error)
+            messages.append({"type": "error", "text": f"❌ CRAG Error: {error_msg}"})
+            if "API" in error_msg or "google" in error_msg.lower():
+                messages.append({"type": "warning", "text": "⚠️ This appears to be a Google API issue. Check your internet connection and API key."})
+            elif "rate" in error_msg.lower() or "quota" in error_msg.lower():
+                messages.append({"type": "warning", "text": "⚠️ API rate limit reached. Please wait a moment and try again."})
+            return f"CRAG failed with error: {error_msg}", "", None, messages
 
     except Exception as e:
         return f"Error generating response: {str(e)}", "", None, [{"type": "error", "text": str(e)}]
-    
+
 def add_message(
     session: dict,
     role: str,
     content: str,
-    technique: str = None,
     query_id: str = None,
     source_chunks: list = None
 ):
-    """Add message to session dict and save to database (FastAPI version)"""
+    """Add message to session dict and save to database (FastAPI version, CRAG only)"""
     message = {
         "id": str(uuid.uuid4()),
         "role": role,
         "content": content,
-        "technique": technique,
         "query_id": query_id,
         "timestamp": datetime.now().isoformat()
     }
@@ -802,10 +534,12 @@ def add_message(
         message["id"],
         role,
         content,
-        technique,
-        query_id
+        query_id=query_id
     )
 
+
+# In your get_source_documents_ui function in chatbot_app.py
+# Update your get_source_documents_ui function in chatbot_app.py
 def get_source_documents_ui(message_id: str, source_chunks: List[Dict]):
     """
     Prepare source document info for frontend UI rendering (FastAPI version).
@@ -835,7 +569,7 @@ def get_source_documents_ui(message_id: str, source_chunks: List[Dict]):
                 "score": round(chunk.get('score', 0.0), 2),
                 "page": chunk.get('page', 1),
                 "metadata": chunk.get('metadata', {}),
-                "highlighted": True  # Flag to indicate this chunk should be highlighted
+                "highlighted": True
             }
             chunk_data.append(chunk_info)
         
@@ -849,11 +583,13 @@ def get_source_documents_ui(message_id: str, source_chunks: List[Dict]):
             "document_id": document_id,
             "message_id": message_id,
             "view_url": f"/document/{document_id}?message_id={message_id}",
+            "view_highlighted_url": f"/document/{document_id}/view-highlighted?message_id={message_id}",
             "download_url": f"/document/{document_id}/download",
+            "download_highlighted_url": f"/document/{document_id}/download-highlighted?message_id={message_id}",
             "actions": [
                 {
                     "type": "link",
-                    "label": "📄 View with Highlights",
+                    "label": "📄 View PDF with Highlights",
                     "action": "view_document",
                     "url": f"/document/{document_id}?message_id={message_id}",
                     "key": f"view_{message_id}_{document_id}",
@@ -862,10 +598,28 @@ def get_source_documents_ui(message_id: str, source_chunks: List[Dict]):
                 },
                 {
                     "type": "link",
-                    "label": "📥 Download Original",
+                    "label": "🎯 View Highlighted PDF",
+                    "action": "view_highlighted",
+                    "url": f"/document/{document_id}/view-highlighted?message_id={message_id}",
+                    "key": f"view_highlighted_{message_id}_{document_id}",
+                    "enabled": doc_path != 'Unknown',
+                    "target": "_blank"
+                },
+                {
+                    "type": "link",
+                    "label": "📥 Download Original PDF",
                     "action": "download_document", 
                     "url": f"/document/{document_id}/download",
                     "key": f"download_{message_id}_{document_id}",
+                    "enabled": doc_path != 'Unknown',
+                    "target": "_blank"
+                },
+                {
+                    "type": "link",
+                    "label": "💾 Download with Highlights",
+                    "action": "download_highlighted", 
+                    "url": f"/document/{document_id}/download-highlighted?message_id={message_id}",
+                    "key": f"download_highlighted_{message_id}_{document_id}",
                     "enabled": doc_path != 'Unknown',
                     "target": "_blank"
                 }
@@ -874,9 +628,10 @@ def get_source_documents_ui(message_id: str, source_chunks: List[Dict]):
         documents_ui.append(document_info)
     
     return documents_ui
+
 def get_message_ui(message: Dict[str, Any], message_index: int, session: dict) -> Dict[str, Any]:
     """
-    Prepare a message dict for frontend UI rendering (FastAPI version).
+    Prepare a message dict for frontend UI rendering (FastAPI version, CRAG only).
     Includes delete actions, feedback prompts, and source document info.
     """
     ui_message = {
@@ -884,7 +639,6 @@ def get_message_ui(message: Dict[str, Any], message_index: int, session: dict) -
         "role": message["role"],
         "content": message["content"],
         "timestamp": message["timestamp"],
-        "technique": message.get("technique"),
         "actions": [],
         "feedback": None,
         "source_documents_ui": None
@@ -921,10 +675,8 @@ def get_message_ui(message: Dict[str, Any], message_index: int, session: dict) -
                 "query_id": None
             }
 
-    # Assistant message: add technique badge
+    # Assistant message: CRAG logic only
     if message["role"] == "assistant":
-        ui_message["technique_badge"] = message.get("technique")
-
         # Feedback collection prompt if pending
         query_id = message.get("query_id")
         if query_id and query_id in session.get("pending_feedback", {}):
@@ -935,7 +687,7 @@ def get_message_ui(message: Dict[str, Any], message_index: int, session: dict) -
             }
 
         # Source documents for CRAG responses
-        if message.get("technique") == "CRAG" and message["id"] in session.get("last_source_chunks", {}):
+        if message["id"] in session.get("last_source_chunks", {}):
             source_chunks = session["last_source_chunks"][message["id"]]
             if source_chunks:
                 ui_message["source_documents_ui"] = get_source_documents_ui(message["id"], source_chunks)
@@ -950,18 +702,18 @@ def get_document_hash(document_paths):
     sorted_paths = sorted(document_paths)
     return hash(tuple(sorted_paths))
 
-def should_reload_rag_system(session: dict, technique: str, document_paths: list):
-    """Check if RAG system should be reloaded due to document changes (FastAPI version)"""
+def should_reload_rag_system(session: dict, document_paths: list):
+    """Check if CRAG system should be reloaded due to document changes (FastAPI version)"""
     current_hash = get_document_hash(document_paths)
     
-    # If documents changed, clear all cached systems
+    # If documents changed, clear cached CRAG system
     if current_hash != session.get('last_document_hash'):
         session['rag_systems'] = {}
         session['last_document_hash'] = current_hash
         return True
     
-    # If system not loaded for this technique, need to load
-    return technique not in session.get('rag_systems', {})
+    # If CRAG system not loaded, need to load
+    return "CRAG" not in session.get('rag_systems', {})
 
 def build_conversation_context(messages, max_turns=3):
     """
@@ -988,76 +740,16 @@ def build_conversation_context(messages, max_turns=3):
     conversation_context = "\n".join(conversation_lines)
     return conversation_context
 
-def create_multi_document_basic_rag(document_paths: List[str], chunk_size=1000, chunk_overlap=200):
-    """
-    Create a Basic RAG system that can handle multiple documents by combining them into a single vectorstore.
-    Returns (vectorstore, messages) for frontend UI display.
-    """
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langchain_huggingface import HuggingFaceEmbeddings
-    from langchain_community.vectorstores import FAISS
-    from langchain_core.documents import Document
 
-    messages = []
-    vectorstore = None
-
-    try:
-        all_documents = []
-        processed_files = []
-
-        # Load and process each document
-        for file_path in document_paths:
-            try:
-                content = load_document_content(file_path)
-                doc_name = os.path.basename(file_path)
-                doc = Document(
-                    page_content=content,
-                    metadata={"source": file_path, "filename": doc_name}
-                )
-                all_documents.append(doc)
-                processed_files.append(doc_name)
-            except Exception as e:
-                messages.append({"type": "warning", "text": f"⚠️ Could not process {os.path.basename(file_path)}: {str(e)}"})
-                continue
-
-        if not all_documents:
-            messages.append({"type": "error", "text": "No documents could be processed successfully."})
-            return None, messages
-
-        messages.append({"type": "success", "text": f"✅ Loaded {len(processed_files)} documents: {', '.join(processed_files)}"})
-
-        # Split documents into chunks
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            length_function=len
-        )
-        texts = text_splitter.split_documents(all_documents)
-
-        # Clean the texts (remove tab characters)
-        cleaned_texts = replace_t_with_space(texts)
-
-        # Create embeddings and vector store using local embeddings
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        vectorstore = FAISS.from_documents(cleaned_texts, embeddings)
-
-        messages.append({"type": "info", "text": f"Created vectorstore with {len(cleaned_texts)} chunks from {len(processed_files)} documents"})
-
-        return vectorstore, messages
-
-    except Exception as e:
-        messages.append({"type": "error", "text": f"Error creating multi-document Basic RAG: {str(e)}"})
-        return None, messages
 # === SESSION MANAGEMENT ===
 
 def get_session(session_id: str) -> SessionData:
-    """Get or create a session"""
+    """Get or create a session (CRAG only)"""
     if session_id not in sessions:
         sessions[session_id] = SessionData(
             session_id=session_id,
             messages=load_chat_history(session_id),
             uploaded_documents=[],
-            selected_technique="Adaptive RAG",
             crag_web_search_enabled=True,
             pending_feedback={},
             last_source_chunks={}
@@ -1065,14 +757,13 @@ def get_session(session_id: str) -> SessionData:
     return sessions[session_id]
 
 def create_new_chat_session():
-    """Create a new chat session (FastAPI version)"""
+    """Create a new chat session (FastAPI version, CRAG only)"""
     new_session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{hash(str(datetime.now()))}"
     # Initialize session data as SessionData object
     sessions[new_session_id] = SessionData(
         session_id=new_session_id,
         messages=[],
         uploaded_documents=[],
-        selected_technique="Adaptive RAG",
         crag_web_search_enabled=True,
         pending_feedback={},
         last_source_chunks={}
@@ -1080,14 +771,13 @@ def create_new_chat_session():
     return new_session_id
 
 def switch_to_chat_session(sessions: dict, session_id: str) -> bool:
-    """Switch to a specific chat session (FastAPI version)"""
+    """Switch to a specific chat session (FastAPI version, CRAG only)"""
     if session_id not in sessions:
         # If session does not exist, create and initialize it
         sessions[session_id] = SessionData(
             session_id=session_id,
             messages=load_chat_history(session_id),
             uploaded_documents=[],
-            selected_technique="Adaptive RAG",
             crag_web_search_enabled=True,
             pending_feedback={},
             last_source_chunks={}
@@ -1097,34 +787,175 @@ def switch_to_chat_session(sessions: dict, session_id: str) -> bool:
 
 # === FASTAPI ROUTES ===
 
+# Add these routes to your chatbot_app.py
+
+@app.get("/document/{document_id}/download-highlighted")
+async def download_highlighted_pdf(document_id: str, message_id: str = None):
+    """Download PDF with highlighted chunks"""
+    try:
+        # Get the document path and chunks
+        doc_path = get_document_path_by_id(document_id)
+        if not doc_path or not os.path.exists(doc_path):
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Get chunks for highlighting if message_id provided
+        chunks = []
+        if message_id:
+            chunks = get_chunks_for_message(message_id)
+        
+        # Create highlighted PDF
+        highlighted_pdf_path = create_highlighted_pdf(doc_path, chunks, message_id)
+        
+        if not highlighted_pdf_path or not os.path.exists(highlighted_pdf_path):
+            # Fallback to original PDF if highlighting fails
+            return FileResponse(
+                doc_path,
+                media_type='application/pdf',
+                filename=f"{os.path.basename(doc_path)}"
+            )
+        
+        return FileResponse(
+            highlighted_pdf_path,
+            media_type='application/pdf',
+            filename=f"highlighted_{os.path.basename(doc_path)}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/document/{document_id}/download")
+async def download_original_pdf(document_id: str):
+    """Download original PDF without highlights"""
+    try:
+        doc_path = get_document_path_by_id(document_id)
+        if not doc_path or not os.path.exists(doc_path):
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        return FileResponse(
+            doc_path,
+            media_type='application/pdf',
+            filename=os.path.basename(doc_path)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def get_document_path_by_id(document_id: str) -> str:
+    """Get document path from document ID"""
+    # This function should map document IDs back to file paths
+    # You may need to store this mapping in your session or database
+    for session_data in sessions.values():
+        for doc_path in session_data.uploaded_documents:
+            if f"doc_{abs(hash(doc_path))}" == document_id:
+                return doc_path
+    return None
+
+def create_highlighted_pdf(original_pdf_path: str, chunks: List[Dict], message_id: str) -> str:
+    """Create a PDF with highlighted chunks"""
+    try:
+        import fitz  # PyMuPDF
+        from datetime import datetime
+        
+        # Open the original PDF
+        doc = fitz.open(original_pdf_path)
+        
+        # Create highlights for each chunk
+        for chunk in chunks:
+            page_num = chunk.get('page', 1) - 1  # PyMuPDF uses 0-based indexing
+            if page_num < 0 or page_num >= len(doc):
+                continue
+                
+            page = doc[page_num]
+            chunk_text = chunk.get('content', chunk.get('text', ''))
+            
+            if not chunk_text:
+                continue
+            
+            # Search for text and highlight
+            text_instances = page.search_for(chunk_text[:100])  # Search first 100 chars
+            if not text_instances:
+                # Try with first few words if full text not found
+                words = chunk_text.split()[:10]
+                search_text = ' '.join(words)
+                text_instances = page.search_for(search_text)
+            
+            # Add highlight annotations
+            for inst in text_instances:
+                highlight = page.add_highlight_annot(inst)
+                highlight.set_colors({"stroke": [1, 1, 0]})  # Yellow highlight
+                highlight.update()
+        
+        # Save the highlighted PDF
+        output_dir = "temp_highlighted_pdfs"
+        os.makedirs(output_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(output_dir, f"highlighted_{message_id}_{timestamp}.pdf")
+        
+        doc.save(output_path)
+        doc.close()
+        
+        return output_path
+        
+    except Exception as e:
+        print(f"Error creating highlighted PDF: {e}")
+        return None
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Serve the main chat interface"""
+    """Serve the main chat interface (CRAG only)"""
     # Create a new session ID for new visitors
     session_id = create_new_chat_session()
     session_data = get_session(session_id)
     all_sessions = get_all_chat_sessions()
     
-    # Technique descriptions
-    technique_descriptions = {
-        "Adaptive RAG": "Dynamically adapts retrieval strategy based on query type (Factual, Analytical, Opinion, Contextual)",
-        "CRAG": "Corrective RAG that evaluates retrieved documents and falls back to web search if needed",
-        "Document Augmentation": "Enhances documents with generated questions for better retrieval",
-        "Basic RAG": "Standard similarity-based retrieval and response generation",
-        "Explainable Retrieval": "Provides explanations for why each retrieved document chunk is relevant to your query using Gemini AI"
-    }
+    # CRAG technique description only
+    crag_description = "Corrective RAG that evaluates retrieved documents and falls back to web search if needed"
     
     return templates.TemplateResponse("index_fastapi.html", {
         "request": request,
         "session_id": session_id,
         "messages": session_data.messages,
         "uploaded_documents": session_data.uploaded_documents,
-        "selected_technique": session_data.selected_technique,
         "crag_web_search_enabled": session_data.crag_web_search_enabled,
         "all_sessions": all_sessions,
-        "technique_descriptions": technique_descriptions,
-        "rag_techniques": ["Adaptive RAG", "CRAG", "Document Augmentation", "Basic RAG", "Explainable Retrieval"]
+        "crag_description": crag_description
     })
+
+
+# Add this route to your chatbot_app.py
+
+@app.get("/document/{document_id}/view-highlighted")
+async def view_highlighted_pdf(document_id: str, message_id: str = None):
+    """View highlighted PDF directly in browser"""
+    try:
+        # Get the document path and chunks
+        doc_path = get_document_path_by_id(document_id)
+        if not doc_path or not os.path.exists(doc_path):
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Get chunks for highlighting if message_id provided
+        chunks = []
+        if message_id:
+            chunks = get_chunks_for_message(message_id)
+        
+        # Create highlighted PDF
+        highlighted_pdf_path = create_highlighted_pdf(doc_path, chunks, message_id)
+        
+        if not highlighted_pdf_path or not os.path.exists(highlighted_pdf_path):
+            # Fallback to original PDF if highlighting fails
+            return FileResponse(
+                doc_path,
+                media_type='application/pdf',
+                filename=f"{os.path.basename(doc_path)}"
+            )
+        
+        # Return the highlighted PDF for inline viewing (not download)
+        return FileResponse(
+            highlighted_pdf_path,
+            media_type='application/pdf',
+            headers={"Content-Disposition": "inline"}  # This makes it open in browser instead of download
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/upload")
 async def upload_files(request: Request, files: List[UploadFile] = File(...), session_id: str = Form(...)):
@@ -1149,7 +980,7 @@ async def upload_files(request: Request, files: List[UploadFile] = File(...), se
 
 @app.post("/query")
 async def process_query(query_request: QueryRequest):
-    """Process a user query"""
+    """Process a user query (CRAG only)"""
     session_data = get_session(query_request.session_id)
     
     # Add user message
@@ -1157,8 +988,6 @@ async def process_query(query_request: QueryRequest):
         "id": str(uuid.uuid4()),
         "role": "user",
         "content": query_request.query,
-        "technique": None,
-        "query_id": None,
         "timestamp": datetime.now().isoformat()
     }
     session_data.messages.append(user_message)
@@ -1171,24 +1000,24 @@ async def process_query(query_request: QueryRequest):
         query_request.query
     )
     
-    # Load RAG system and collect UI messages
+    # Load CRAG system and collect UI messages
     rag_system, messages = load_rag_system(
-        query_request.technique,
+        "CRAG",
         session_data.uploaded_documents,
         query_request.crag_web_search_enabled
     )
     if rag_system:
-        rag_systems[query_request.technique] = rag_system
+        rag_systems["CRAG"] = rag_system
     else:
         return JSONResponse({
             "success": False,
-            "error": f"Failed to load {query_request.technique}",
+            "error": "Failed to load CRAG",
             "messages": messages
         })
     # Generate response
     start_time = time.time()
     response, context, source_chunks, rag_messages = get_rag_response(
-        query_request.technique,
+        "CRAG",
         query_request.query,
         rag_system,
         session_data.messages
@@ -1201,8 +1030,6 @@ async def process_query(query_request: QueryRequest):
         "id": str(uuid.uuid4()),
         "role": "assistant",
         "content": response,
-        "technique": query_request.technique,
-        "query_id": None,
         "timestamp": datetime.now().isoformat()
     }
     
@@ -1213,7 +1040,7 @@ async def process_query(query_request: QueryRequest):
             query=query_request.query,
             response=response,
             context=context,
-            technique=query_request.technique,
+            technique="CRAG",
             processing_time=response_time,
             document_sources=document_sources,
             session_id=query_request.session_id
@@ -1235,10 +1062,9 @@ async def process_query(query_request: QueryRequest):
         assistant_message["id"],
         "assistant",
         response,
-        query_request.technique,
-        assistant_message.get("query_id")
+        query_id=assistant_message.get("query_id")
     )
-    source_documents_ui= get_source_documents_ui(assistant_message["id"], source_chunks)
+    source_documents_ui = get_source_documents_ui(assistant_message["id"], source_chunks)
     sessions[query_request.session_id] = session_data
     all_messages = messages + rag_messages
     ui_messages = [
@@ -1252,7 +1078,6 @@ async def process_query(query_request: QueryRequest):
     return JSONResponse({
         "success": True,
         "response": response,
-        "technique": query_request.technique,
         "query_id": assistant_message.get("query_id"),
         "source_chunks": source_chunks,
         "processing_time": response_time,

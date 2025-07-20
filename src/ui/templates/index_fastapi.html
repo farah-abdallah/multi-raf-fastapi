@@ -443,8 +443,31 @@
             text-decoration: none;
         }
 
+        /* Add to your CSS */
+        .source-action-btn.download_highlighted {
+            background: #28a745;
+            color: white;
+        }
+
+        .source-action-btn.download_highlighted:hover {
+            background: #218838;
+            color: white;
+            text-decoration: none;
+        }
         .source-chunks-preview {
             margin-top: 0.5rem;
+        }
+
+        /* Add this to your CSS in index_fastapi.html */
+        .source-action-btn.view_highlighted {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .source-action-btn.view_highlighted:hover {
+            background: #138496;
+            color: white;
+            text-decoration: none;
         }
 
         .chunk-preview {
@@ -544,8 +567,8 @@
             <div class="sidebar-section">
                 <h3><i class="fa-solid fa-cogs"></i>RAG Technique</h3>
                 <div class="technique-card" id="techniqueDescription">
-                    <strong>{{ selected_technique }}</strong><br>
-                    <small>{{ technique_descriptions[selected_technique] }}</small>
+                    <strong>CRAG</strong><br>
+                    <small>{{ crag_description }}</small>
                 </div>
             </div>
 
@@ -634,13 +657,6 @@
                 <div class="chat-input">
                     <textarea class="form-control" id="queryInput" placeholder="Ask a question about your documents..." rows="2"></textarea>
                 </div>
-                <div class="technique-select">
-                    <select class="form-control" id="techniqueSelect" onchange="updateTechnique()">
-                        {% for technique in rag_techniques %}
-                        <option value="{{ technique }}" {% if technique == selected_technique %}selected{% endif %}>{{ technique }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
                 <div>
                     <button class="btn btn-primary" onclick="sendQuery()" id="sendButton">Send</button>
                 </div>
@@ -653,7 +669,7 @@
     let currentSessionId = '{{ session_id }}';
     let uploadedDocuments = {{ uploaded_documents | tojson | safe }};
     let messages = {{ messages | tojson | safe }};
-    let techniqueDescriptions = {{ technique_descriptions | tojson | safe }};
+    let cragDescription = "{{ crag_description }}";
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
@@ -722,7 +738,11 @@
                                     <div class="source-document-actions">
                                         ${doc.actions.map(action => {
                                             if (action.type === 'link' && action.enabled) {
-                                                return `<a href="${action.url}" target="${action.target}" class="source-action-btn ${action.action}">${action.label}</a>`;
+                                                let buttonClass = 'source-action-btn ' + action.action;
+                                                if (action.action === 'download_highlighted') {
+                                                    buttonClass += ' highlighted-download';
+                                                }
+                                                return `<a href="${action.url}" target="${action.target}" class="${buttonClass}">${action.label}</a>`;
                                             }
                                             return '';
                                         }).join('')}
@@ -794,23 +814,15 @@
         }
 
         function updateTechnique() {
-            const select = document.getElementById('techniqueSelect');
-            const selectedTechnique = select.value;
-            
-            // Update technique description
-            const description = techniqueDescriptions[selectedTechnique];
+            // Update technique description for CRAG only
             document.getElementById('techniqueDescription').innerHTML = `
-                <strong>${selectedTechnique}</strong><br>
-                <small>${description}</small>
+                <strong>CRAG</strong><br>
+                <small>${cragDescription}</small>
             `;
 
-            // Show/hide CRAG options
+            // Always show CRAG options since we only use CRAG
             const cragOptions = document.getElementById('cragOptions');
-            if (selectedTechnique === 'CRAG') {
-                cragOptions.style.display = 'block';
-            } else {
-                cragOptions.style.display = 'none';
-            }
+            cragOptions.style.display = 'block';
         }
 
         async function sendQuery() {
@@ -823,7 +835,7 @@
                 return;
             }
 
-            const technique = document.getElementById('techniqueSelect').value;
+            const technique = "CRAG"; // Always use CRAG
             const cragWebSearch = document.getElementById('cragWebSearch').checked;
 
             // Add user message immediately
